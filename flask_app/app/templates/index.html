@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartoonify</title>
+</head>
+
+<!-- Link of the font used -->
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;1,300&display=swap" rel="stylesheet">
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Code for the containers having the two images */
+    #container1 {
+        display: block;
+        margin: 5px auto;
+        width: fit-content;
+        height: 300px;
+        object-fit: cover;
+        background-color: white;
+    }
+
+    #container2 {
+        display: block;
+        margin: 5px auto;
+        width: fit-content;
+        height: 300px;
+        background-color: white;
+    }
+
+    /*  Code for responsiveness */
+    img {
+        max-height: 100%;
+        max-width: 100%;
+    }
+
+
+    /* Code for aligning items in the middle container */
+    .container-mid {
+        margin: 10px 0px;
+        height: 90px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+        margin: 10px 0px;
+    }
+
+    /* Code for all the components in the middle container */
+
+    #img_select_button {
+        font-size: 20px;
+        font-family: 'Open Sans', sans-serif;
+        width: 305px;
+    }
+
+    .send {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+        align-items: center;
+    }
+
+    #input_text {
+        display: flex;
+        border: 2px solid rgb(28, 121, 214);
+        width: 266px;
+        height: 63px;
+        border-radius: 30px;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        font-family: 'Open Sans', sans-serif;
+
+    }
+
+    #sendBtn,
+    ::-webkit-file-upload-button {
+        background-color: rgb(28, 121, 214);
+        width: 146px;
+        height: 37px;
+        border-radius: 25px;
+        font-size: 20px;
+        border: none;
+        outline: none;
+        color: white;
+        font-family: 'Open Sans', sans-serif;
+        margin-left: 10px;
+        cursor: pointer;
+        transition-property: background-color;
+        transition-duration: 0.2s;
+    }
+
+    #sendBtn:hover,
+    ::-webkit-file-upload-button:hover {
+        background-color: rgb(25, 106, 187);
+    }
+
+    /* Code for mobile responsiveness */
+    @media screen and (max-width:750px) {
+        .container-mid {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            align-items: center;
+            height: 300px;
+            width: fit-content;
+            margin: 10px auto;
+        }
+
+        .send {
+            height: 117px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #container1 {
+            height: 200px;
+        }
+
+        #container2 {
+            height: 200px;
+        }
+
+    }
+</style>
+
+<body>
+
+    <div id="container1">
+        <img id="image_selected">
+    </div>
+
+    <hr noshade="noshade" height="5px" color="dodgerblue">
+
+    <div class="container-mid">
+        <div class="image_input">
+            <input type="file" id="img_select_button" accept="image/*">
+        </div>
+
+        <div class="send">
+            <div id="input_text">Progress log...</div>
+            <button id="sendBtn" onclick='upload_image()'>Process</button>
+        </div>
+
+    </div>
+
+    <hr noshade="noshade" height="5px" color="dodgerblue">
+
+
+    <div id="container2">
+        <img id="image_output">
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+        integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+        integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+        crossorigin="anonymous"></script>
+
+    <script type="text/javascript">
+
+        var text = document.getElementById('input_text')
+        var socket = io()
+        var image_selected = document.getElementById('image_selected')
+        document.getElementById('img_select_button').addEventListener('change', imageSelected, false)
+
+        function upload_image() {
+            text.innerText = "Processing ..."
+            console.log("Image sent")
+            var canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d');
+            canvas.width = image_selected.width;
+            canvas.height = image_selected.height;
+            ctx.drawImage(image_selected, 0, 0, image_selected.width, image_selected.height);
+            socket.emit('input_image', canvas.toDataURL('image/jpeg'))
+        }
+
+        function imageSelected(el) {
+            text.innerText = "Press the process button"
+            var file = el.target.files[0]
+            var fileReader = new FileReader()
+            fileReader.readAsDataURL(file)
+            fileReader.onload = () => {
+                image_selected.src = fileReader.result
+            }
+        }
+
+        socket.on('processed_image', function (data) {
+            console.log("Image received")
+            urlObject = URL.createObjectURL(new Blob([data.frame]));
+            document.getElementById('image_output').src = urlObject
+        })
+
+        socket.on('update', function (data) {
+            text.innerText = data
+        })
+
+    </script>
+
+
+</body>
+
+</html>
